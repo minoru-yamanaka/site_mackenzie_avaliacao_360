@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Atividades</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- SheetJS para exportação de Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Portal de Atividades | <span id="userRoleTitle">Dashboard</span></a>
+        <button class="hamburger"
+            onclick="document.getElementById('navLinks').classList.toggle('active')">&#9776;</button>
+        <div class="nav-links d-flex align-center" id="navLinks">
+            <span id="userNameDisplay" style="margin-right: 1rem; font-weight: 500; color: white;"></span>
+            <a href="/" style="margin-right: 1rem;">Portal de Formulários</a>
+            <a href="/forms.html" style="margin-right: 1rem;">Gerenciar Formulários</a>
+            <a href="/mural.html" style="margin-right: 1rem;">Mural de Avisos</a>
+            <button id="logoutBtn" class="btn btn-danger" style="padding: 0.5rem 1rem;">Sair</button>
+        </div>
+    </nav>
+
+    <div class="dashboard-grid">
+        <aside class="sidebar">
+            <ul class="sidebar-nav">
+                <li><a href="#" id="navSubmissions" class="active">📋 Atividades Entregues</a></li>
+                <li class="admin-only hidden"><a href="#" id="navUsers">👤 Gerenciar Usuários & Acessos</a></li>
+                <li><a href="#" id="navNotices">📢 Mural de Avisos</a></li>
+                <li><a href="#" id="navStudentMessages">✉️ Mensagens Recebidas</a></li>
+                <li><a href="#" id="navProfile">👤 Meu Perfil</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div id="alertMessage" class="alert"></div>
+
+            <!-- View: Meu Perfil -->
+            <section id="viewProfile" class="hidden">
+                <h2>Meu Perfil</h2>
+                <div class="card mt-2" style="max-width: 500px;">
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label for="profileName">Nome</label>
+                            <input type="text" id="profileName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileEmail">E-mail</label>
+                            <input type="email" id="profileEmail" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePassword">Nova Senha (deixe em branco para não alterar)</label>
+                            <input type="password" id="profilePassword" class="form-control" placeholder="Nova senha">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Salvar Perfil</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- View: Submissões -->
+            <section id="viewSubmissions">
+                <div class="d-flex justify-between align-center" style="margin-bottom: 1.5rem;">
+                    <h2>Atividades Entregues</h2>
+                    <div class="d-flex gap-2 align-center">
+                        <div class="d-flex align-center gap-2" style="margin-right: 0.5rem;">
+                            <label for="searchStudentRa"
+                                style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; margin: 0;">Exibir
+                                Histórico (RA/DRT):</label>
+                            <input type="text" id="searchStudentRa" class="form-control" placeholder="Digite o RA/DRT"
+                                style="width: 140px; padding: 0.4rem 0.8rem; font-size: 0.85rem; height: auto;">
+                            <button id="showStudentHistoryBtn" class="btn btn-secondary btn-sm"
+                                style="padding: 0.4rem 0.8rem; height: auto; font-size: 0.85rem;">Exibir</button>
+                        </div>
+                        <div class="d-flex align-center gap-2" style="margin-right: 0.5rem;">
+                            <label for="preferredEmailClient"
+                                style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; margin: 0;">Enviar
+                                e-mail via:</label>
+                            <select id="preferredEmailClient" class="form-control"
+                                style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.85rem; height: auto;">
+                                <option value="gmail">Gmail Web</option>
+                                <option value="outlook">Outlook Web</option>
+                                <option value="local">Outlook / App Local</option>
+                            </select>
+                        </div>
+                        <button id="exportExcelBtn" class="btn btn-secondary">Exportar Excel</button>
+                    </div>
+                </div>
+
+                <div class="card mt-2 mb-4 d-flex flex-column gap-2">
+                    <div class="form-group mb-0">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Pesquisar:</label>
+                        <input type="text" id="filterSubmissionsText" class="form-control"
+                            placeholder="Buscar aluno, turma, disciplina...">
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Filtrar por Núcleo:</label>
+                        <select id="filterSubmissionsSubject" class="form-control">
+                            <option value="">Todos Núcleos</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Filtrar por Status:</label>
+                        <select id="filterSubmissionsStatus" class="form-control">
+                            <option value="">Todos Status</option>
+                            <option value="Em Andamento">Em Andamento</option>
+                            <option value="Concluído">Concluído</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Filtrar por Tipo de Atividade:</label>
+                        <select id="filterSubmissionsActivityType" class="form-control">
+                            <option value="">Todos Tipos</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Data Início:</label>
+                        <input type="date" id="filterSubmissionsStart" class="form-control">
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Data Fim:</label>
+                        <input type="date" id="filterSubmissionsEnd" class="form-control">
+                    </div>
+                </div>
+
+                <div id="batchActionsContainer" class="hidden"
+                    style="margin-bottom: 1rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);">
+                    <span style="font-weight: 500; margin-right: 1rem;"><span id="selectedCount">0</span>
+                        selecionado(s)</span>
+                    <button id="batchDownloadBtn" class="btn btn-primary btn-sm"
+                        style="margin-right: 0.5rem; background-color: #28a745; border-color: #28a745;"
+                        title="Baixa todas as atividades selecionadas. Para alunos sem anexos, cria uma pasta vazia.">📥
+                        Baixar Arquivos</button>
+                    <button id="batchDownloadIgnoreEmptyBtn" class="btn btn-sm"
+                        style="margin-right: 0.5rem; background-color: #f59e0b; color: white; border: 1px solid #f59e0b; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: var(--radius); cursor: pointer;"
+                        title="Baixa em lote, mas ignora totalmente os alunos que não possuem arquivos de anexo.">📥
+                        Baixar (Apenas Com Anexo)</button>
+                    <button id="batchSendEmailBtn" class="btn btn-sm"
+                        style="margin-right: 0.5rem; background-color: #17a2b8; color: white; border: none; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: var(--radius); cursor: pointer;">📧
+                        Enviar Notas</button>
+                    <button id="batchExportExcelBtn" class="btn btn-sm"
+                        style="margin-right: 0.5rem; background-color: #107c41; color: white; border: 1px solid #107c41; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: var(--radius); cursor: pointer;">📊
+                        Exportar Excel</button>
+                    <button id="batchDeleteFilesBtn" class="btn btn-secondary btn-sm"
+                        style="margin-right: 0.5rem;">Apagar Apenas Anexos</button>
+                    <button id="batchDeleteSubsBtn" class="btn btn-danger btn-sm">Apagar Atividades</button>
+                </div>
+
+                <div class="table-container">
+                    <table id="submissionsTable">
+                        <thead>
+                            <tr>
+                                <th id="thSelectAllSubs" style="width: 40px;"><input type="checkbox" id="selectAllSubs">
+                                </th>
+                                <th>Protocolo</th>
+                                <th>Status</th>
+                                <th>Aluno (DRT)</th>
+                                <th>Semestre</th>
+                                <th>Núcleo/Disc.</th>
+                                <th>Tipo Atividade</th>
+                                <th>Ações</th>
+
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- View: Modal/Form para Nota -->
+            <div id="gradeModal" class="card hidden mt-4" style="border: 2px solid var(--primary);">
+                <h3>Detalhes da Atividade: <span id="evalStudentName" style="color: var(--primary);"></span></h3>
+                <form id="gradeForm" class="mt-2">
+                    <input type="hidden" id="evalSubmissionId">
+                    <div class="form-group" id="studentMessageGroup" style="display: none;">
+                        <label style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Mensagem
+                            do Aluno:</label>
+                        <div id="evalStudentMessage"
+                            style="padding: 0.75rem; background: var(--bg-color); border-radius: var(--radius); border: 1px solid var(--border); font-size: 0.9rem; white-space: pre-wrap;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="evalGrade">Parecer / Nota</label>
+                        <input type="number" id="evalGrade" class="form-control" step="0.1" min="0" max="10">
+                    </div>
+                    <div class="form-group">
+                        <label for="evalFeedback">Mensagem ao Aluno:</label>
+                        <textarea id="evalFeedback" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group"
+                        style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; margin-bottom: 1rem;">
+                        <input type="checkbox" id="evalSendEmail" style="width: auto; height: auto; margin: 0;" checked>
+                        <label for="evalSendEmail"
+                            style="margin: 0; font-weight: 500; font-size: 0.9rem; cursor: pointer;">Enviar nota por
+                            e-mail para o aluno</label>
+                    </div>
+                    <div class="form-group admin-only hidden" id="adminNoteGroup">
+                        <label for="evalAdminNote" style="color: var(--danger); font-weight: 600;">Nota Interna (Apenas
+                            Admins)</label>
+                        <textarea id="evalAdminNote" class="form-control" rows="3"
+                            placeholder="Nota visível apenas para administradores..."></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                        <button type="button" id="closeGradeModalBtn" class="btn btn-secondary">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- View: Modal para Histórico de Atividades do Aluno -->
+            <div id="studentHistoryModal" class="card hidden mt-4"
+                style="border: 2px solid var(--primary); max-width: 750px;">
+                <h3>Histórico de Atividades</h3>
+                <div
+                    style="margin-top: 0.5rem; margin-bottom: 1.5rem; font-size: 0.95rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                    Aluno: <span id="historyStudentName" style="font-weight: 600; color: var(--primary);"></span> |
+                    DRT/RA: <span id="historyStudentDrt" style="font-weight: 600; color: var(--primary);"></span>
+                </div>
+                <div id="historySubmissionsList"
+                    style="max-height: 55vh; overflow-y: auto; margin-bottom: 1.5rem; padding-right: 0.5rem;">
+                    <!-- Atividades do aluno serão inseridas aqui -->
+                </div>
+                <div class="d-flex justify-end" style="justify-content: flex-end;">
+                    <button type="button" id="closeStudentHistoryModalBtn" class="btn btn-secondary">Fechar</button>
+                </div>
+            </div>
+
+            <!-- Modal para Editar Submissão (Apenas Admin) -->
+            <div id="editSubmissionModal" class="card hidden mt-4" style="border: 2px solid var(--primary);">
+                <h3>Editar Atividade</h3>
+                <form id="editSubmissionForm" class="mt-2">
+                    <input type="hidden" id="editSubId">
+                    <div class="form-group">
+                        <label for="editSubName">Nome do Aluno</label>
+                        <input type="text" id="editSubName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSubDRT">DRT</label>
+                        <input type="text" id="editSubDRT" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSubClass">Semestre</label>
+                        <select id="editSubClass" class="form-control" required>
+                            <option value="1º Semestre 2025">1º Semestre 2025</option>
+                            <option value="2º Semestre 2025">2º Semestre 2025</option>
+                            <option value="1º Semestre 2026">1º Semestre 2026</option>
+                            <option value="2º Semestre 2026">2º Semestre 2026</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSubSubject">Disciplina / Núcleo</label>
+                        <select id="editSubSubject" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSubActivityType">Tipo de Atividade</label>
+                        <select id="editSubActivityType" class="form-control">
+                            <option value="">Selecione...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSubStatus">Status da Atividade</label>
+                        <select id="editSubStatus" class="form-control">
+                            <option value="Em Andamento">Em Andamento</option>
+                            <option value="Concluído">Concluído</option>
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                        <button type="button" id="closeEditSubmissionModalBtn"
+                            class="btn btn-secondary">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- View: Admin - Usuários -->
+            <section id="viewUsers" class="hidden">
+                <div class="d-flex justify-between align-center"
+                    style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    <h2 style="margin: 0;">Gerenciar Usuários & Acessos</h2>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-secondary btn-sm" onclick="downloadUserExampleTemplate()"
+                            style="background-color: #107c41; color: white; border-color: #107c41;"
+                            title="Baixar planilha de exemplo para importação">📥 Modelo de Exemplo</button>
+                        <button class="btn btn-secondary btn-sm" onclick="exportData('users')">Exportar Excel</button>
+                        <button class="btn btn-secondary btn-sm"
+                            onclick="document.getElementById('importUsersFile').click()">Importar Excel</button>
+                        <input type="file" id="importUsersFile" class="hidden" accept=".xlsx"
+                            onchange="importData('users', this)">
+                    </div>
+                </div>
+
+                <div class="card mt-2">
+                    <h3 style="margin-top: 0; margin-bottom: 1rem;">Cadastrar Novo Usuário</h3>
+                    <form id="userForm" class="d-flex flex-wrap gap-2 align-center">
+                        <input type="text" id="newUserName" class="form-control" placeholder="Nome" required
+                            style="flex: 1.5;">
+                        <input type="email" id="newUserEmail" class="form-control" placeholder="E-mail" required
+                            style="flex: 1.5;">
+                        <input type="text" id="newUserDrt" class="form-control" placeholder="RA / DRT / CPF"
+                            style="flex: 1;">
+                        <input type="password" id="newUserPassword" class="form-control" placeholder="Senha" required
+                            style="flex: 1;">
+                        <select id="newUserRole" class="form-control" style="width: auto;">
+                            <option value="professor">Professor</option>
+                            <option value="admin">Administrador</option>
+                            <option value="student">Aluno</option>
+                            <option value="preceptor">Preceptor</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">Adicionar</button>
+                    </form>
+                </div>
+
+                <!-- Nota de Observação -->
+                <div
+                    style="margin-top: 0.6rem; padding: 0.65rem 1rem; background: rgba(234, 179, 8, 0.08); border-left: 3px solid #eab308; border-radius: 6px; display: flex; align-items: flex-start; gap: 0.6rem;">
+                    <span style="font-size: 1rem; margin-top: 0.05rem;">⚠️</span>
+                    <p style="margin: 0; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;">
+                        <strong style="color: var(--text-main);">Importação via planilha:</strong>
+                        Usuários novos sem senha preenchida serão criados com a senha padrão <code
+                            style="background: var(--surface); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.8rem;">123456</code>.
+                        Usuários já cadastrados (mesmo e-mail) terão apenas nome, função e documento atualizados — a
+                        senha atual é mantida.
+                    </p>
+                </div>
+
+                <div class="mt-4">
+                    <input type="text" id="filterUsersInput" class="form-control"
+                        placeholder="Filtrar usuários por nome, email, documento, função ou status de acesso...">
+                </div>
+
+                <!-- Container de Ações em Lote para Usuários -->
+                <div id="batchUserActionsContainer" class="hidden"
+                    style="margin-top: 1rem; margin-bottom: 1rem; padding: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <span style="font-weight: 500;"><span id="selectedUsersCount">0</span> selecionado(s)</span>
+
+                    <div style="height: 20px; border-left: 1px solid var(--border);"></div>
+
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label for="batchUserRole"
+                            style="font-size: 0.85rem; font-weight: 600; margin: 0; color: var(--text-main);">Alterar
+                            Função:</label>
+                        <select id="batchUserRole" class="form-control"
+                            style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.85rem; height: auto;">
+                            <option value="student">Aluno</option>
+                            <option value="professor">Professor</option>
+                            <option value="preceptor">Preceptor</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                        <button id="btnBatchChangeRole" class="btn btn-primary btn-sm"
+                            style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: var(--primary); border-color: var(--primary);">Aplicar</button>
+                    </div>
+
+                    <div style="height: 20px; border-left: 1px solid var(--border);"></div>
+
+                    <button id="btnBatchBlockUsers" class="btn btn-danger btn-sm"
+                        style="background-color: #ef4444; border-color: #ef4444; padding: 0.4rem 0.8rem; font-size: 0.85rem;">🔒
+                        Bloquear Acessos</button>
+                    <button id="btnBatchActivateUsers" class="btn btn-success btn-sm"
+                        style="background-color: #10b981; border-color: #10b981; color: white; padding: 0.4rem 0.8rem; font-size: 0.85rem;">🔓
+                        Ativar Acessos</button>
+                    <button id="btnBatchDeleteUsers" class="btn btn-danger btn-sm"
+                        style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">🗑️ Apagar Usuários</button>
+                </div>
+
+                <div class="table-container mt-2">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"><input type="checkbox" id="selectAllUsers"></th>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>RA / DRT / CPF</th>
+                                <th>Nível de Acesso</th>
+                                <th>Status de Acesso</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- View: Modal para Editar Usuário -->
+            <div id="editUserModal" class="card hidden mt-4" style="border: 2px solid var(--primary);">
+                <h3>Editar Usuário <span id="editUserNameDisplay" style="color: var(--primary);"></span></h3>
+                <form id="editUserForm" class="mt-2">
+                    <input type="hidden" id="editUserId">
+                    <div class="form-group">
+                        <label for="editUserName">Nome</label>
+                        <input type="text" id="editUserName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserEmail">E-mail</label>
+                        <input type="email" id="editUserEmail" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserDrt">RA / DRT / CPF</label>
+                        <input type="text" id="editUserDrt" class="form-control"
+                            placeholder="RA, DRT ou CPF do usuário">
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserPassword">Nova Senha (deixe em branco para não alterar)</label>
+                        <input type="password" id="editUserPassword" class="form-control" placeholder="Nova senha">
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserRole">Função</label>
+                        <select id="editUserRole" class="form-control" required>
+                            <option value="professor">Professor</option>
+                            <option value="admin">Administrador</option>
+                            <option value="student">Aluno</option>
+                            <option value="preceptor">Preceptor</option>
+                        </select>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                        <button type="button" id="closeEditUserModalBtn" class="btn btn-secondary">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+
+
+            <!-- View: Admin - Avisos -->
+            <section id="viewNotices" class="hidden">
+                <div class="d-flex justify-between align-center" style="margin-bottom: 1.5rem;">
+                    <h2 style="margin: 0;">Gerenciar Mural de Avisos</h2>
+                </div>
+
+                <!-- Formulário de Criação -->
+                <div class="card" style="border-top: 4px solid var(--primary); padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <form id="noticeForm">
+                        <div class="d-flex flex-wrap gap-3 mb-3">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label for="newNoticeUser"
+                                    style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.4rem;">Usuários</label>
+                                <select id="newNoticeUser" class="form-control">
+                                    <option value="">Geral</option>
+                                </select>
+                            </div>
+                            <div style="flex: 2; min-width: 300px;">
+                                <label for="newNoticeTitle"
+                                    style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.4rem;">Título
+                                    do Aviso</label>
+                                <input type="text" id="newNoticeTitle" class="form-control"
+                                    placeholder="Título chamativo..." required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newNoticeMessage"
+                                style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.4rem;">Conteúdo
+                                da Mensagem</label>
+                            <textarea id="newNoticeMessage" class="form-control" rows="3"
+                                placeholder="Escreva o conteúdo do aviso aqui..." required></textarea>
+                        </div>
+                        <div class="d-flex justify-between align-center flex-wrap gap-3">
+                            <div class="d-flex align-center gap-2">
+                                <label for="newNoticeFile" class="btn btn-secondary btn-sm"
+                                    style="background-color: #28a745; border-color: #28a745; margin: 0; padding: 0.5rem 1.25rem;">
+                                    📎 Anexar Arquivo
+                                </label>
+                                <input type="file" id="newNoticeFile" class="hidden" accept="*/*"
+                                    onchange="document.getElementById('fileNameNotice').textContent = this.files[0]?.name || ''">
+                                <span id="fileNameNotice"
+                                    style="font-size: 0.8rem; color: var(--text-muted); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="padding: 0.6rem 2rem;">
+                                Publicar Aviso
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Filtros e Busca -->
+                <div class="card"
+                    style="padding: 1.25rem; background-color: #f8fafc; border: 1px solid var(--border); margin-bottom: 1.5rem;">
+                    <div class="d-flex flex-wrap gap-3 align-end">
+                        <div style="flex: 2; min-width: 250px;">
+                            <label
+                                style="font-weight: 600; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.4rem;">BUSCAR
+                                NO MURAL</label>
+                            <input type="text" id="filterNoticesText" class="form-control"
+                                placeholder="Pesquise por título, autor ou conteúdo...">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label
+                                style="font-weight: 600; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.4rem;">DATA
+                                INÍCIO</label>
+                            <input type="date" id="filterNoticesStart" class="form-control">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label
+                                style="font-weight: 600; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.4rem;">DATA
+                                FIM</label>
+                            <input type="date" id="filterNoticesEnd" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container mt-2">
+                    <table id="noticesTable">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Título</th>
+                                <th>Autor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Modal para Editar Aviso -->
+            <div id="editNoticeModal" class="card hidden mt-4" style="border: 2px solid var(--primary);">
+                <h3>Editar Aviso</h3>
+                <form id="editNoticeForm" class="mt-2">
+                    <input type="hidden" id="editNoticeId">
+                    <div class="form-group">
+                        <label for="editNoticeUser">Usuários</label>
+                        <select id="editNoticeUser" class="form-control">
+                            <option value="">Geral</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editNoticeTitle">Título</label>
+                        <input type="text" id="editNoticeTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editNoticeMessage">Mensagem</label>
+                        <textarea id="editNoticeMessage" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Arquivo / Anexo (opcional)</label>
+                        <div class="d-flex gap-2 align-center">
+                            <label for="editNoticeFile" class="btn btn-secondary btn-sm"
+                                style="margin: 0; white-space: nowrap; cursor: pointer;">
+                                Alterar Arquivo
+                            </label>
+                            <input type="file" id="editNoticeFile" class="hidden" accept="*/*"
+                                onchange="document.getElementById('fileNameEditNotice').textContent = this.files[0]?.name || ''">
+                            <span id="fileNameEditNotice"
+                                style="font-size: 0.75rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;"></span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                        <button type="button" id="closeEditNoticeModalBtn" class="btn btn-secondary">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- View: Mensagens NuMQ (Recebidas dos Alunos) -->
+            <section id="viewStudentMessages" class="hidden">
+                <div class="d-flex justify-between align-center">
+                    <h2>Mensagens Recebidas dos Alunos</h2>
+                </div>
+                <div class="table-container mt-2">
+                    <table id="studentMessagesTable">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Aluno</th>
+                                <th>Assunto</th>
+                                <th>Destinatário</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Modal para Visualizar Mensagem do Aluno -->
+            <div id="viewStudentMessageModal" class="card hidden mt-4"
+                style="border: 2px solid var(--primary); max-width: 600px; margin: 2rem auto;">
+                <h3>Mensagem de: <span id="msgStudentName" style="color: var(--primary);"></span></h3>
+                <div class="mt-3">
+                    <p><strong>E-mail:</strong> <span id="msgStudentEmail"></span></p>
+                    <p><strong>Destinatário:</strong> <span id="msgDestinatario"></span></p>
+                    <p><strong>Assunto:</strong> <span id="msgAssunto"></span></p>
+                    <p><strong>Data de Envio:</strong> <span id="msgDataEnvio"></span></p>
+                    <hr style="margin: 1rem 0; border: 1px solid var(--border);">
+                    <label
+                        style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Mensagem:</label>
+                    <div id="msgConteudo"
+                        style="padding: 1rem; background: var(--bg-color); border: 1px solid var(--border); border-radius: var(--radius); white-space: pre-wrap; margin-top: 0.5rem; max-height: 250px; overflow-y: auto;">
+                    </div>
+                </div>
+
+                <!-- Área de Nota Interna (Apenas Admins) -->
+                <div id="msgAdminNoteGroup" class="form-group mt-3 hidden">
+                    <hr style="margin: 1rem 0; border: 1px solid var(--border);">
+                    <label for="msgAdminNote" style="color: var(--danger); font-weight: 600;">Nota Interna (Apenas
+                        Admins)</label>
+                    <textarea id="msgAdminNote" class="form-control" rows="3"
+                        placeholder="Nota visível apenas para administradores..."></textarea>
+                    <button type="button" id="saveMsgAdminNoteBtn" class="btn btn-primary btn-sm mt-2">Salvar
+                        Nota</button>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="button" id="closeMsgModalBtn" class="btn btn-secondary">Fechar</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/navbar.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mural de Avisos - Portal de Atividades</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .notice-card {
+            background-color: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .notice-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        .notice-title {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+        .notice-date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: block;
+        }
+        .notice-message {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Portal de Atividades</a>
+        <button class="hamburger" onclick="document.getElementById('navLinks').classList.toggle('active')">&#9776;</button>
+        <div class="nav-links" id="navLinks">
+            <a href="/">Portal de Formulários</a>
+            <a href="/forms.html">Gerenciar Formulários</a>
+            <a href="/fale-conosco.html">Enviar Mensagem</a>
+            <a href="/mural.html">Mural de Avisos</a>
+            <a href="/login.html">Acesso Docente</a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 800px; margin-top: 2rem;">
+        <h1 class="text-center" style="margin-bottom: 1rem;">Avisos Recentes</h1>
+        
+        <div class="card" style="margin-bottom: 2rem; padding: 1.5rem;">
+            <div class="d-flex flex-column gap-2">
+                <div class="form-group mb-0">
+                    <label style="font-weight: 500; font-size: 0.9rem;">Pesquisar:</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="🔍 Buscar por título, conteúdo, professor ou disciplina...">
+                </div>
+                <div class="form-group mb-0">
+                    <label style="font-weight: 500; font-size: 0.9rem;">Data Início:</label>
+                    <input type="date" id="filterDateStart" class="form-control">
+                </div>
+                <div class="form-group mb-0">
+                    <label style="font-weight: 500; font-size: 0.9rem;">Data Fim:</label>
+                    <input type="date" id="filterDateEnd" class="form-control">
+                </div>
+            </div>
+        </div>
+        
+        <div id="loader" class="text-center">
+            <p>Carregando avisos...</p>
+        </div>
+
+        <div id="noticesContainer">
+            <!-- Avisos serão injetados aqui -->
+        </div>
+    </div>
+
+    <script src="/js/mural.js"></script>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

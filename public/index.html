@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Formulários | Início</title>
+    <meta name="description" content="Selecione um formulário ativo para responder.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background-color: var(--bg-color);
+            min-height: 100vh;
+        }
+        .hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
+        }
+        .hero h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        .hero p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .search-container {
+            max-width: 600px;
+            margin: -1.5rem auto 2rem;
+            padding: 0 1rem;
+        }
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 999px;
+            box-shadow: var(--shadow-lg);
+            font-family: inherit;
+            font-size: 1.05rem;
+            outline: none;
+        }
+        .forms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        .public-form-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            border-top: 4px solid var(--primary);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .public-form-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        .form-card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .form-card-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            flex-grow: 1;
+            white-space: pre-wrap;
+        }
+        .form-card-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            border-top: 1px solid var(--border);
+            padding-top: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+        .empty-state .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Portal de Formulários</a>
+        <button class="hamburger" onclick="document.getElementById('navLinks').classList.toggle('active')">&#9776;</button>
+        <div class="nav-links d-flex align-center" id="navLinks">
+            <a href="/" style="margin-right: 1rem;">Formulários Disponíveis</a>
+            <a href="/mural.html" style="margin-right: 1rem;">Mural de Avisos</a>
+            <a href="/fale-conosco.html" style="margin-right: 1rem;">Enviar Mensagem</a>
+            <div id="authLinks">
+                <a href="/login.html" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; color: white;">Acesso Docente</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <div class="hero">
+        <h1>Portal de Formulários Dinâmicos</h1>
+        <p>Selecione um dos formulários ativos abaixo para registrar sua resposta.</p>
+    </div>
+
+    <!-- BUSCA -->
+    <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar formulário por título...">
+    </div>
+
+    <!-- GRID DE FORMULÁRIOS -->
+    <div class="container" style="max-width: 1200px; padding-bottom: 4rem;">
+        <div id="alertMessage" class="alert"></div>
+        
+        <div id="formsGrid" class="forms-grid">
+            <div class="empty-state">
+                <div class="loader"></div>
+                <p style="margin-top: 1rem;">Carregando formulários disponíveis...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verifica se está logado para adaptar botões da navbar
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            if (token && user) {
+                document.getElementById('authLinks').innerHTML = `
+                    <span style="color: white; margin-right: 1rem; font-weight: 500;">Olá, ${user.name}</span>
+                    <a href="/dashboard.html" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; color: white; margin-right: 0.5rem;">Ir para Painel</a>
+                    <button onclick="logout()" class="btn btn-danger" style="padding: 0.5rem 1rem;">Sair</button>
+                `;
+            }
+
+            let allForms = [];
+            loadPublicForms();
+
+            document.getElementById('searchInput').addEventListener('input', renderForms);
+
+            async function loadPublicForms() {
+                try {
+                    const res = await fetch('/api/public/forms');
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Erro ao carregar.');
+                    allForms = data;
+                    renderForms();
+                } catch (e) {
+                    document.getElementById('formsGrid').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">⚠️</div>
+                            <p>${e.message}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            function renderForms() {
+                const search = document.getElementById('searchInput').value.toLowerCase().trim();
+                const filtered = allForms.filter(f => 
+                    f.title.toLowerCase().includes(search)
+                );
+
+                const grid = document.getElementById('formsGrid');
+
+                if (filtered.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1 / -1;">
+                            <div class="empty-icon">🗂️</div>
+                            <p>${allForms.length === 0 ? 'Nenhum formulário ativo no momento.' : 'Nenhum formulário corresponde à sua busca.'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                grid.innerHTML = filtered.map(f => {
+                    const roles = { 
+                        avaliador: f.evaluator_type || 'Não especificado', 
+                        avaliado: f.evaluated_type || 'Não especificado' 
+                    };
+
+                    const start = f.start_date
+                        ? `Abertura: ${new Date(f.start_date).toLocaleString('pt-BR')}`
+                        : 'Abertura: Imediata';
+                    
+                    const deadline = f.deadline 
+                        ? `Fechamento: ${new Date(f.deadline).toLocaleString('pt-BR')}`
+                        : 'Fechamento: Sem prazo';
+
+                    return `
+                        <div class="public-form-card" style="position: relative; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <div class="form-card-title" style="margin-bottom: 0.5rem; min-height: 2.8rem; display: flex; align-items: center;">${escapeHtml(f.title)}</div>
+                                <div style="display: flex; gap: 0.4rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                                    <span class="badge" style="background-color: rgba(0, 123, 255, 0.08); color: var(--primary); font-size: 0.72rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600; border: 1px solid rgba(0, 123, 255, 0.15);">
+                                        Avaliador: ${escapeHtml(roles.avaliador)}
+                                    </span>
+                                    <span class="badge" style="background-color: rgba(40, 167, 69, 0.08); color: #28a745; font-size: 0.72rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600; border: 1px solid rgba(40, 167, 69, 0.15);">
+                                        Avaliado: ${escapeHtml(roles.avaliado)}
+                                    </span>
+                                </div>
+                                <div class="form-card-desc" style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">${escapeHtml(f.description || 'Sem descrição.')}</div>
+                            </div>
+                            <div>
+                                <div class="form-card-meta" style="font-size: 0.78rem; border-top: 1px solid var(--border); padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem;">
+                                    <span style="display: flex; align-items: center; gap: 0.4rem; color: var(--text-main); font-weight: 500;">
+                                        🛫 ${start}
+                                    </span>
+                                    <span style="display: flex; align-items: center; gap: 0.4rem; color: var(--text-main); font-weight: 500;">
+                                        📅 ${deadline}
+                                    </span>
+                                </div>
+                                <button class="btn btn-primary" style="width: 100%; font-weight: 600; padding: 0.65rem;" onclick="answerForm(${f.id})">
+                                    📝 Responder Avaliação
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            window.answerForm = (id) => {
+                window.location.href = `/form-view.html?id=${id}`;
+            };
+
+            window.logout = () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.reload();
+            };
+
+            function escapeHtml(str) {
+                return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            }
+        });
+    </script>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

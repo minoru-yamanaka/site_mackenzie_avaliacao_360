@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Formulários | Portal de Atividades</title>
+    <meta name="description" content="Gerencie seus formulários dinâmicos — crie, edite, publique e acompanhe respostas.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* ── Estilos específicos da página de formulários ── */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.25rem;
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .stat-card .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        /* Grid de cards de formulários */
+        .forms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .form-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid var(--border);
+        }
+        .form-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .form-card.published { border-left-color: var(--secondary); }
+        .form-card.draft { border-left-color: #f59e0b; }
+        .form-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        .form-card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            flex: 1;
+        }
+        .form-card-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .form-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filter-bar select, .filter-bar input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+        .empty-state .empty-icon { font-size: 4rem; margin-bottom: 1rem; }
+        .response-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            background: var(--bg-color);
+            padding: 0.25rem 0.6rem;
+            border-radius: 999px;
+        }
+        .share-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            background: var(--bg-color);
+            cursor: text;
+        }
+        /* Modal de compartilhamento */
+        #shareModal {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000; width: 90%; max-width: 480px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR (reutiliza padrão do dashboard) -->
+    <nav class="navbar">
+        <a href="/dashboard.html" class="navbar-brand">Portal de Atividades | <span>Formulários</span></a>
+        <button class="hamburger" onclick="document.getElementById('navLinks').classList.toggle('active')">&#9776;</button>
+        <div class="nav-links d-flex align-center" id="navLinks">
+            <span id="userNameDisplay" style="margin-right:1rem;font-weight:500;color:white;"></span>
+            <a href="/dashboard.html" style="margin-right:1rem;">Dashboard</a>
+            <a href="/forms.html" style="margin-right:1rem;">Formulários</a>
+            <a href="/mural.html" style="margin-right:1rem;">Mural de Avisos</a>
+            <button id="logoutBtn" class="btn btn-danger" style="padding:0.5rem 1rem;">Sair</button>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width:1300px; margin-top:2rem;">
+        <div id="alertMessage" class="alert"></div>
+
+        <!-- Cabeçalho da página -->
+        <div class="page-header">
+            <div>
+                <h1 style="margin-bottom:0.25rem;">Meus Formulários</h1>
+                <p style="color:var(--text-muted); font-size:0.9rem;">Crie, edite e acompanhe seus formulários dinâmicos</p>
+            </div>
+            <button id="btnNewForm" class="btn btn-primary">＋ Novo Formulário</button>
+        </div>
+
+        <!-- Cards de estatísticas -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value" id="statTotal">—</div>
+                <div class="stat-label">Total de Formulários</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statPublished" style="color:var(--secondary);">—</div>
+                <div class="stat-label">Publicados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statDraft" style="color:#f59e0b;">—</div>
+                <div class="stat-label">Rascunhos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statResponses">—</div>
+                <div class="stat-label">Total de Respostas</div>
+            </div>
+        </div>
+
+        <!-- Barra de filtros -->
+        <div class="filter-bar">
+            <select id="filterStatus">
+                <option value="">Todos os status</option>
+                <option value="published">Publicados</option>
+                <option value="draft">Rascunhos</option>
+            </select>
+            <input type="text" id="filterSearch" placeholder="🔍 Buscar formulário..." style="flex:1; min-width:200px;">
+        </div>
+
+        <!-- Grid de formulários -->
+        <div class="forms-grid" id="formsGrid">
+            <div class="empty-state" id="loadingState">
+                <div class="loader"></div>
+                <p>Carregando formulários...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Compartilhar link -->
+    <div id="shareOverlay" class="modal-open-overlay hidden" onclick="closeShareModal()"></div>
+    <div id="shareModal" class="hidden">
+        <h3 style="margin-bottom:1rem;">🔗 Compartilhar Formulário</h3>
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:1rem;">
+            Copie o link abaixo e envie para os respondentes:
+        </p>
+        <input type="text" id="shareLinkInput" class="share-input" readonly>
+        <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-primary" onclick="copyShareLink()" style="flex:1;">📋 Copiar Link</button>
+            <button class="btn btn-danger" onclick="closeShareModal()">Fechar</button>
+        </div>
+    </div>
+
+    <script src="/js/forms.js"></script>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

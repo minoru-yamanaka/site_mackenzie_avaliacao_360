@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Histórico de Atividades - Portal de Atividades</title>
+    <meta name="description" content="Consulte o histórico completo de todas as suas atividades enviadas, notas e feedbacks dos docentes.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- SheetJS para exportação de Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        /* ============================================================
+           HISTORICO.HTML — Estilos específicos desta página
+           Usa apenas variáveis CSS do projeto (style.css)
+        ============================================================ */
+
+        /* Hero da página de busca */
+        .page-hero {
+            background: linear-gradient(135deg, var(--primary) 0%, #6d28d9 100%);
+            padding: 3rem 2rem;
+            text-align: center;
+            color: white;
+        }
+        .page-hero h1 {
+            color: white;
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+        .page-hero p {
+            color: rgba(255,255,255,0.85);
+            font-size: 1.05rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .hero-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            display: block;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* Container principal de conteúdo */
+        .hist-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 960px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Card do formulário de busca */
+        .search-card {
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 2.5rem;
+            margin-top: -2rem;
+            position: relative;
+        }
+        .search-card h2 {
+            text-align: center;
+            color: var(--text-main);
+            font-size: 1.4rem;
+            margin-bottom: 0.25rem;
+        }
+        .search-card .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Grid do formulário */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .form-grid .full-span {
+            grid-column: 1 / -1;
+        }
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Input com ícone */
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper .input-icon {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+            pointer-events: none;
+        }
+        .input-wrapper .form-control {
+            padding-left: 2.5rem;
+        }
+
+        /* Botão de busca premium */
+        #submitBtn {
+            background: linear-gradient(135deg, var(--primary) 0%, #6d28d9 100%);
+            color: white;
+            border: none;
+            padding: 0.9rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.35);
+        }
+        #submitBtn:hover:not(:disabled) {
+            opacity: 0.92;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+        }
+        #submitBtn:active { transform: scale(0.98); }
+        #submitBtn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+        /* Spinner */
+        .btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255,255,255,0.4);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+        .btn-spinner.show { display: inline-block; }
+
+        /* ============================================================
+           SEÇÃO DE RESULTADOS
+        ============================================================ */
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .student-info-block h2 {
+            font-size: 1.4rem;
+            margin: 0 0 0.25rem 0;
+            color: var(--text-main);
+        }
+        .student-info-block .student-meta {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        .student-info-block .student-meta strong {
+            color: var(--text-main);
+        }
+
+        /* Cards de estatísticas */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 400px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+        .stat-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.1rem 1rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-left: 4px solid transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .stat-card.total   { border-color: #6366f1; }
+        .stat-card.done    { border-color: var(--secondary); }
+        .stat-card.pending { border-color: #f59e0b; }
+        .stat-card.avg     { border-color: #ec4899; }
+        .stat-card-icon {
+            font-size: 1.8rem;
+            flex-shrink: 0;
+        }
+        .stat-card-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1;
+        }
+        .stat-card-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+            margin-top: 0.15rem;
+        }
+
+        /* Painel de filtros */
+        .filter-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .filter-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .filter-panel-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .filter-toggle-icon {
+            transition: transform 0.25s;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .filter-toggle-icon.open { transform: rotate(180deg); }
+        .filter-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.75rem;
+        }
+        .filter-body.collapsed { display: none; }
+        .filter-group label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .filter-group select,
+        .filter-group input[type="date"] {
+            width: 100%;
+            padding: 0.45rem 0.65rem;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: inherit;
+            color: var(--text-main);
+            background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            height: auto;
+        }
+        .filter-group select:focus,
+        .filter-group input[type="date"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+        .btn-clear-filters {
+            padding: 0.45rem 0.9rem;
+            font-size: 0.8rem;
+            background: var(--bg-color);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: background 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+        .btn-clear-filters:hover {
+            background: #e5e7eb;
+            color: var(--text-main);
+        }
+
+        /* Cards de atividade */
+        .activity-card {
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            border-left: 5px solid var(--border);
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: fadeInUp 0.35s ease both;
+        }
+        .activity-card.status-concluido { border-left-color: var(--secondary); }
+        .activity-card.status-andamento { border-left-color: #f59e0b; }
+        .activity-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+        .protocol-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.2rem;
+        }
+        .protocol-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        .card-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Grade de detalhes */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 0.85rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .detail-item .detail-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.2rem;
+        }
+        .detail-item .detail-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        /* Mensagem do aluno */
+        .student-message-box {
+            background: #f0f4ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.88rem;
+        }
+        .student-message-box .msg-label {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }
+        .student-message-box .msg-text {
+            white-space: pre-wrap;
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        /* Caixa de avaliação — com nota */
+        .eval-box {
+            border-radius: var(--radius);
+            padding: 1rem 1.1rem;
+            margin-bottom: 1rem;
+        }
+        .eval-box.evaluated {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+        .eval-box.pending {
+            background: #f9fafb;
+            border: 1px solid var(--border);
+        }
+        .eval-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.6rem;
+        }
+        .eval-box.evaluated .eval-title { color: #166534; }
+        .eval-box.pending   .eval-title { color: var(--text-muted); }
+        .eval-grade-row {
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
+            margin-bottom: 0.4rem;
+        }
+        .eval-grade-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #15803d;
+            line-height: 1;
+        }
+        .eval-grade-unit {
+            font-size: 0.85rem;
+            color: #166534;
+            font-weight: 500;
+        }
+        .eval-feedback {
+            background: rgba(255,255,255,0.7);
+            border: 1px dashed #34d399;
+            border-radius: 6px;
+            padding: 0.65rem 0.85rem;
+            font-size: 0.88rem;
+            color: #1e3a1e;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            margin-top: 0.5rem;
+        }
+        .eval-pending-text {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            font-style: italic;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Área de arquivo */
+        .file-area {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.9rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-download:active { transform: scale(0.97); }
+        .btn-dl-green {
+            background: var(--secondary);
+            color: white;
+        }
+        .btn-dl-green:hover { background: var(--secondary-hover); }
+        .btn-dl-indigo {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-dl-indigo:hover { background: var(--primary-hover); }
+        .no-file-text {
+            font-size: 0.83rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Estado vazio */
+        .empty-state {
+            text-align: center;
+            padding: 3.5rem 2rem;
+            color: var(--text-muted);
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px dashed var(--border);
+        }
+        .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; display: block; }
+        .empty-state h3 { color: var(--text-main); margin-bottom: 0.4rem; font-size: 1.1rem; }
+        .empty-state p  { font-size: 0.9rem; }
+
+        /* Alert de erro */
+        .alert-hist {
+            display: none;
+            padding: 0.85rem 1.1rem;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 1rem;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .alert-hist.show { display: flex; }
+        .alert-hist.danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+        }
+        .alert-hist.warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        /* Botão Voltar / Consultar Outro */
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.55rem 1.1rem;
+            font-size: 0.88rem;
+            font-weight: 600;
+            background: var(--surface);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-family: inherit;
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .btn-back:hover {
+            background: var(--bg-color);
+            border-color: #9ca3af;
+        }
+
+        /* Responsive geral */
+        @media (max-width: 768px) {
+            .page-hero h1 { font-size: 1.6rem; }
+            .hist-content { padding: 1rem; }
+            .search-card  { padding: 1.5rem; margin-top: -1rem; }
+            .stats-grid   { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================================
+         NAVBAR
+    ============================================================ -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Portal de Atividades</a>
+        <button class="hamburger" onclick="document.getElementById('navLinks').classList.toggle('active')">&#9776;</button>
+        <div class="nav-links" id="navLinks">
+            <a href="/">Portal de Formulários</a>
+            <a href="/forms.html">Gerenciar Formulários</a>
+            <a href="/historico.html">Histórico</a>
+            <a href="/fale-conosco.html">Enviar Mensagem</a>
+            <a href="/mural.html">Mural de Avisos</a>
+            <a id="navAuthLink" href="/login.html">Acesso Docente</a>
+        </div>
+    </nav>
+
+    <!-- ============================================================
+         HERO + FORMULÁRIO DE BUSCA
+    ============================================================ -->
+    <div id="searchSection">
+        <div class="page-hero">
+            <span class="hero-icon">📋</span>
+            <h1>Histórico de Atividades</h1>
+            <p>Acompanhe todos os seus envios, notas e feedbacks dos docentes em um só lugar.</p>
+        </div>
+
+        <div class="hist-content">
+            <div class="search-card">
+                <h2>Buscar Histórico</h2>
+                <p class="subtitle">Preencha seus dados e o protocolo de um envio seu para confirmar a identidade.</p>
+
+                <div id="searchAlert" class="alert-hist danger" role="alert">
+                    <span>⚠️</span>
+                    <span id="searchAlertMsg">Ocorreu um erro.</span>
+                </div>
+
+                <form id="queryForm" novalidate>
+                    <div class="form-grid">
+                        <div class="form-group full-span">
+                            <label for="inputNome">Nome Completo <span style="color:var(--danger)">*</span></label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">👤</span>
+                                <input type="text" id="inputNome" class="form-control" placeholder="Como cadastrado no envio da atividade" autocomplete="name" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputDrt">DRT / RA (Matrícula) <span style="color:var(--danger)">*</span></label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🎓</span>
+                                <input type="text" id="inputDrt" class="form-control" placeholder="Seu número de matrícula" autocomplete="off" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputProtocol">Protocolo de Envio <span style="color:var(--danger)">*</span></label>
+                            <div class="input-wrapper">
+                                <span class="input-icon">🔑</span>
+                                <input type="text" id="inputProtocol" class="form-control" placeholder="Ex: AT-1700000000000-123" autocomplete="off" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" style="margin-top: 1rem;">
+                        <span id="btnText">🔍 Buscar Histórico</span>
+                        <span class="btn-spinner" id="btnSpinner"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SEÇÃO DE RESULTADOS (oculta por padrão)
+    ============================================================ -->
+    <div id="resultsSection" class="hidden">
+        <div class="hist-content" style="padding-top: 2rem;">
+
+            <!-- Cabeçalho dos resultados -->
+            <div class="results-header">
+                <div class="student-info-block">
+                    <h2>📋 Histórico de Atividades</h2>
+                    <p class="student-meta">
+                        Aluno: <strong id="displayName">—</strong> &nbsp;|&nbsp; DRT: <strong id="displayDrt">—</strong>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button id="exportExcelBtn" class="btn-download btn-dl-green" type="button" style="background: #107c41; color: white; border: 1px solid #107c41;">
+                        <span>📊</span>
+                        <span>Exportar Excel</span>
+                    </button>
+                    <button id="backBtn" class="btn-back" type="button">
+                        <span id="backBtnIcon">🔍</span>
+                        <span id="backBtnText">Consultar Outro</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cards de estatísticas -->
+            <div class="stats-grid">
+                <div class="stat-card total">
+                    <span class="stat-card-icon">📦</span>
+                    <div>
+                        <div class="stat-card-value" id="statTotal">0</div>
+                        <div class="stat-card-label">Total de Envios</div>
+                    </div>
+                </div>
+                <div class="stat-card done">
+                    <span class="stat-card-icon">✅</span>
+                    <div>
+                        <div class="stat-card-value" id="statDone">0</div>
+                        <div class="stat-card-label">Avaliadas</div>
+                    </div>
+                </div>
+                <div class="stat-card pending">
+                    <span class="stat-card-icon">⏳</span>
+                    <div>
+                        <div class="stat-card-value" id="statPending">0</div>
+                        <div class="stat-card-label">Aguardando</div>
+                    </div>
+                </div>
+                <div class="stat-card avg">
+                    <span class="stat-card-icon">📊</span>
+                    <div>
+                        <div class="stat-card-value" id="statAvg">—</div>
+                        <div class="stat-card-label">Média Geral</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel de filtros -->
+            <div class="filter-panel">
+                <div class="filter-panel-header" id="filterToggle" role="button" aria-expanded="true" aria-controls="filterBody">
+                    <span class="filter-panel-title">🔎 Filtrar Resultados</span>
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <button class="btn-clear-filters" id="clearFiltersBtn" type="button">Limpar Filtros</button>
+                        <span class="filter-toggle-icon open" id="filterChevron">▼</span>
+                    </div>
+                </div>
+                <div class="filter-body" id="filterBody">
+                    <div class="filter-group">
+                        <label for="filterSubject">Disciplina / Núcleo</label>
+                        <select id="filterSubject">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterActivityType">Tipo de Atividade</label>
+                        <select id="filterActivityType">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="filterDateStart">Data de (Início)</label>
+                        <input type="date" id="filterDateStart">
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterDateEnd">Data até (Fim)</label>
+                        <input type="date" id="filterDateEnd">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de atividades -->
+            <div id="activitiesList">
+                <!-- Cards gerados via JS -->
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================
+         FOOTER
+    ============================================================ -->
+    <footer style="text-align: center; padding: 2rem; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 3rem; background: white;">
+        Desenvolvido por <br>
+        <a href="https://api.whatsapp.com/send/?phone=5511959473402&text&type=phone_number&app_absent=0" style="color: var(--primary); text-decoration: none; font-weight: 500;">MINORU YAMANAKA</a>
+    </footer>
+
+    <script src="/js/historico.js"></script>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviar Mensagem - Portal de Atividades</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Portal de Atividades</a>
+        <button class="hamburger"
+            onclick="document.getElementById('navLinks').classList.toggle('active')">&#9776;</button>
+        <div class="nav-links" id="navLinks">
+            <a href="/">Portal de Formulários</a>
+            <a href="/forms.html">Gerenciar Formulários</a>
+            <a href="/fale-conosco.html" class="active">Enviar Mensagem</a>
+            <a href="/mural.html">Mural de Avisos</a>
+            <a href="/login.html">Acesso Docente</a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 700px; margin-top: 2rem;">
+        <div class="card">
+            <h1 class="text-center">Enviar Mensagem</h1>
+            <p class="text-center text-muted" style="margin-bottom: 2rem;">Dúvidas, críticas, elogios ou sugestões? Envie sua mensagem para o Núcleo de Melhoria e Qualidade.</p>
+
+            <div id="alertMessage" class="alert"></div>
+
+            <form id="contactForm">
+                <div class="form-group">
+                    <label for="name">Nome Completo *</label>
+                    <input type="text" id="name" name="name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">E-mail para Contato *</label>
+                    <input type="email" id="email" name="email" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="destinatario">Destinatário *</label>
+                    <select id="destinatario" name="destinatario" class="form-control" required>
+                        <option value="numq">NuMQ (Administração Geral)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="subject">Assunto *</label>
+                    <select id="subject" name="subject" class="form-control" required>
+                        <option value="">Selecione um assunto...</option>
+                        <option value="Dúvida sobre Atividades">Dúvida sobre Atividades</option>
+                        <option value="Problema Técnico">Problema Técnico</option>
+                        <option value="Sugestão de Melhoria">Sugestão de Melhoria</option>
+                        <option value="Reclamação">Reclamação</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="content">Sua Mensagem *</label>
+                    <textarea id="content" name="content" class="form-control" rows="5" placeholder="Descreva aqui o que você deseja tratar com o NuMQ..." required></textarea>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-block mt-4">
+                    <span id="btnText">Enviar Mensagem</span>
+                    <span id="btnLoader" class="loader hidden"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('contactForm');
+            const alertDiv = document.getElementById('alertMessage');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnLoader = document.getElementById('btnLoader');
+
+            // Carregar professores
+            const destinatarioSelect = document.getElementById('destinatario');
+            fetch('/api/public/professors')
+                .then(res => res.json())
+                .then(data => {
+                    data.forEach(prof => {
+                        const option = document.createElement('option');
+                        option.value = prof.id;
+                        option.textContent = `Docente: ${prof.name}`;
+                        destinatarioSelect.appendChild(option);
+                    });
+                })
+                .catch(err => console.error('Erro ao carregar professores:', err));
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const destinatarioVal = document.getElementById('destinatario').value;
+                const formData = {
+                    name: document.getElementById('name').value,
+                    email: document.getElementById('email').value,
+                    subject: document.getElementById('subject').value,
+                    content: document.getElementById('content').value,
+                    professorId: destinatarioVal === 'numq' ? null : parseInt(destinatarioVal)
+                };
+
+                setLoading(true);
+
+                try {
+                    const response = await fetch('/api/public/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Erro ao enviar mensagem.');
+                    }
+
+                    showAlert(result.message, 'success');
+                    form.reset();
+
+                } catch (error) {
+                    showAlert(error.message, 'danger');
+                } finally {
+                    setLoading(false);
+                }
+            });
+
+            function showAlert(msg, type) {
+                alertDiv.textContent = msg;
+                alertDiv.className = `alert alert-${type} show`;
+                window.scrollTo(0, 0);
+                setTimeout(() => alertDiv.classList.remove('show'), 5000);
+            }
+
+            function setLoading(isLoading) {
+                submitBtn.disabled = isLoading;
+                if (isLoading) {
+                    btnText.classList.add('hidden');
+                    btnLoader.classList.remove('hidden');
+                } else {
+                    btnText.classList.remove('hidden');
+                    btnLoader.classList.add('hidden');
+                }
+            }
+        });
+    </script>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respostas do Formulário | Portal de Atividades</title>
+    <meta name="description" content="Visualize, analise e exporte as respostas do formulário.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .export-bar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        /* Stats resumo */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem; text-align: center; }
+        .stat-card .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--primary); }
+        .stat-card .stat-label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; }
+
+        /* Gráfico */
+        .chart-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-container { position: relative; height: 220px; }
+
+        /* Tabela de respostas */
+        .responses-table-wrap { overflow-x: auto; }
+        .response-row { cursor: pointer; }
+        .response-row:hover { background: #f0f4ff !important; }
+
+        /* Badge CHA */
+        .cha-badge {
+            display: inline-flex;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            background: #eef2ff;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .cha-media-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        /* Paginação */
+        .pagination { display: flex; gap: 0.4rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
+        .page-btn {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+        .page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .page-btn:hover:not(.active) { background: var(--bg-color); }
+
+        /* Modal de resposta individual */
+        #responseModal {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000; width: 90%; max-width: 680px;
+            max-height: 85vh; overflow-y: auto;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            padding: 2rem;
+        }
+        .modal-answer-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-answer-item:last-child { border-bottom: none; }
+        .modal-field-label { font-weight: 600; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+        .modal-field-value { color: var(--text-main); }
+
+        /* Filtro de data */
+        .filter-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+        .filter-bar input, .filter-bar select { padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <a href="/forms.html" class="navbar-brand">← Voltar aos Formulários</a>
+        <div class="nav-links d-flex align-center">
+            <span id="userNameDisplay" style="margin-right:1rem;font-weight:500;color:white;"></span>
+            <button id="logoutBtn" class="btn btn-danger" style="padding:0.5rem 1rem;">Sair</button>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width:1300px; margin-top:2rem;">
+        <div id="alertMessage" class="alert"></div>
+
+        <!-- Cabeçalho -->
+        <div class="page-header">
+            <div>
+                <h1 id="formTitle" style="margin-bottom:0.25rem;">Respostas</h1>
+                <p id="formDesc" style="color:var(--text-muted); font-size:0.9rem;"></p>
+            </div>
+            <div class="export-bar" style="display: flex; gap: 0.5rem; align-items: center;">
+                <button id="btnEditForm" class="btn btn-primary">📝 Editar Formulário</button>
+                <button id="btnExportExcel" class="btn btn-secondary">📊 Excel</button>
+                <button id="btnExportCsv" class="btn btn-warning">📄 CSV</button>
+                <button id="btnExportZip" class="btn" style="background:#7c3aed;color:white;">📦 ZIP Anexos</button>
+            </div>
+        </div>
+
+         <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value" id="statTotal">—</div>
+                <div class="stat-label">Total de Respostas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statToday" style="color:var(--secondary);">—</div>
+                <div class="stat-label">Hoje</div>
+            </div>
+        </div>
+
+        <!-- Gráfico de respostas por dia -->
+        <div class="chart-card">
+            <h3 style="margin-bottom:1rem; font-size:1rem;">📈 Respostas por Dia (últimos 7 dias)</h3>
+            <div class="chart-container">
+                <canvas id="responsesChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-bar">
+            <select id="filterSemester" style="padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 0.9rem; background: var(--surface); color: var(--text-main);">
+                <option value="">Filtrar por Semestre...</option>
+                <option value="2025-1">1º semestre de 2025</option>
+                <option value="2025-2">2º semestre de 2025</option>
+                <option value="2026-1">1º semestre de 2026</option>
+                <option value="2026-2">2º semestre de 2026</option>
+            </select>
+            <span style="color: var(--text-muted); font-size: 0.9rem;">ou período:</span>
+            <input type="date" id="filterDateFrom" title="Data inicial">
+            <input type="date" id="filterDateTo" title="Data final">
+            <button class="btn btn-primary" onclick="applyFilter()" style="padding:0.5rem 1rem;">Filtrar</button>
+            <button class="btn" onclick="clearFilter()" style="padding:0.5rem 1rem; background:var(--bg-color);">Limpar</button>
+        </div>
+
+        <!-- Ações em Lote -->
+        <div id="batchActionsContainer" class="card mt-2 hidden" style="background-color: #f0f4ff; border: 1px solid var(--primary); display: flex; align-items: center; justify-content: space-between; padding: 1rem; margin-bottom: 1.5rem; flex-direction: row; gap: 1rem; border-left: 5px solid var(--primary);">
+            <div>
+                <span style="font-weight: 600; color: var(--primary); font-size: 0.95rem;">Respostas selecionadas: <span id="selectedCount">0</span></span>
+            </div>
+            <div>
+                <button id="btnBatchDelete" class="btn btn-danger" style="padding: 0.5rem 1rem; font-weight: 600;">🗑️ Excluir Selecionadas</button>
+            </div>
+        </div>
+
+        <!-- Tabela de respostas -->
+        <div class="card">
+            <div class="responses-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllResponses"></th>
+                            <th>#</th>
+                            <th>Respondente</th>
+                            <th>Data/Hora</th>
+                            <th>IP</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="responsesTableBody">
+                        <tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--text-muted);">
+                            <div class="loader"></div> Carregando...
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <!-- Modal: Resposta Individual -->
+    <div id="modalOverlay" class="modal-open-overlay hidden" onclick="closeResponseModal()"></div>
+    <div id="responseModal" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3>Detalhes da Resposta #<span id="modalResponseId"></span></h3>
+            <button onclick="closeResponseModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">×</button>
+        </div>
+        <div id="modalResponseDate" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;"></div>
+        <div id="modalAnswersList"></div>
+    </div>
+
+    <script src="/js/form-responses.js"></script>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

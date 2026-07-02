@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultar Atividades - Portal de Atividades</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- SheetJS para exportação de Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        .activity-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .activity-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .activity-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+        }
+        .activity-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .detail-item {
+            font-size: 0.9rem;
+        }
+        .detail-label {
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        .detail-value {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+        .grade-box {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .grade-title {
+            font-weight: 600;
+            color: #166534;
+            font-size: 0.9rem;
+            margin-bottom: 0.4rem;
+        }
+        .grade-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #15803d;
+        }
+        .feedback-text {
+            font-size: 0.9rem;
+            color: #1e3a1e;
+            margin-top: 0.5rem;
+            white-space: pre-wrap;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px dashed #34d399;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">Portal de Atividades</a>
+        <button class="hamburger" onclick="document.getElementById('navLinks').classList.toggle('active')">&#9776;</button>
+        <div class="nav-links" id="navLinks">
+            <a href="/">Portal de Formulários</a>
+            <a href="/forms.html">Gerenciar Formulários</a>
+            <a href="/fale-conosco.html">Enviar Mensagem</a>
+            <a href="/mural.html">Mural de Avisos</a>
+            <a href="/login.html">Acesso Docente</a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 800px; margin-top: 2rem; flex: 1;">
+        <!-- Formulário de Consulta -->
+        <div id="searchSection" class="card">
+            <h1 class="text-center">Consultar Minhas Atividades</h1>
+            <p class="text-center text-muted" style="margin-bottom: 2rem;">
+                Informe seus dados e pelo menos um protocolo de envio para visualizar seu histórico completo de entregas e pareceres.
+            </p>
+
+            <div id="alertMessage" class="alert"></div>
+
+            <form id="queryForm">
+                <div class="form-group">
+                    <label for="nome">Nome Completo (como cadastrado no envio) *</label>
+                    <input type="text" id="nome" class="form-control" placeholder="Seu nome completo" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="drt">DRT/RA (Matrícula) *</label>
+                    <input type="text" id="drt" class="form-control" placeholder="Seu número de matrícula" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="protocol">Protocolo de Envio *</label>
+                    <input type="text" id="protocol" class="form-control" placeholder="Qualquer um de seus protocolos (ex: AT-1700000000000-123)" required>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-block mt-4" style="padding: 0.9rem;">
+                    <span id="btnText">Buscar Atividades</span>
+                    <span id="btnLoader" class="loader hidden"></span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Seção de Resultados (Oculta por padrão) -->
+        <div id="resultsSection" class="hidden">
+            <div class="d-flex justify-between align-center mb-4 flex-wrap" style="gap: 1rem;">
+                <div>
+                    <h2 style="margin: 0;">Histórico de Atividades</h2>
+                    <p class="text-muted" style="margin: 0; font-size: 0.9rem;">Aluno: <span id="studentNameDisplay" style="font-weight: 600; color: var(--text-main);"></span> | DRT: <span id="studentDrtDisplay" style="font-weight: 600; color: var(--text-main);"></span></p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                    <button id="exportExcelBtn" class="btn btn-sm" type="button" style="padding: 0.6rem 1.2rem; background: #107c41; color: white; border: 1px solid #107c41; display: flex; align-items: center; gap: 0.4rem; font-weight: 500; cursor: pointer;">
+                        <span>📊</span>
+                        <span>Exportar Excel</span>
+                    </button>
+                    <button id="backBtn" class="btn btn-secondary btn-sm" style="padding: 0.6rem 1.2rem;">🔍 Consultar Outro</button>
+                </div>
+            </div>
+
+            <!-- Filtros do Histórico -->
+            <div class="card mb-4" style="padding: 1.25rem; background-color: #f8fafc; border: 1px solid var(--border);">
+                <h4 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 0.9rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em;">Filtrar Histórico</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                    <div class="form-group mb-0">
+                        <label for="filterSubject" style="font-weight: 500; font-size: 0.8rem; margin-bottom: 0.25rem; display: block;">Disciplina / Núcleo</label>
+                        <select id="filterSubject" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto;">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label for="filterActivityType" style="font-weight: 500; font-size: 0.8rem; margin-bottom: 0.25rem; display: block;">Tipo de Atividade</label>
+                        <select id="filterActivityType" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto;">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label for="filterStartDate" style="font-weight: 500; font-size: 0.8rem; margin-bottom: 0.25rem; display: block;">Data de (Início)</label>
+                        <input type="date" id="filterStartDate" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto;">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label for="filterEndDate" style="font-weight: 500; font-size: 0.8rem; margin-bottom: 0.25rem; display: block;">Data até (Fim)</label>
+                        <input type="date" id="filterEndDate" class="form-control" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; height: auto;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="activitiesList">
+                <!-- Atividades serão injetadas aqui -->
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align: center; padding: 2rem; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 3rem; background: white;">
+        Desenvolvido por <br>
+        <a href="https://api.whatsapp.com/send/?phone=5511959473402&text&type=phone_number&app_absent=0" style="color: var(--primary); text-decoration: none; font-weight: 500;">MINORU YAMANAKA</a>
+    </footer>
+
+    <script src="/js/consulta.js"></script>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

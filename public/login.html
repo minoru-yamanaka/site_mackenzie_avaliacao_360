@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Portal de Atividades</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
+
+    <nav class="navbar" style="background: transparent; box-shadow: none;">
+        <a href="/" class="navbar-brand">Portal de Atividades</a>
+        <button class="hamburger" onclick="document.getElementById('navLinks').classList.toggle('active')">&#9776;</button>
+        <div class="nav-links" id="navLinks">
+            <a href="/">Portal de Formulários</a>
+            <a href="/forms.html">Gerenciar Formulários</a>
+            <a href="/fale-conosco.html">Enviar Mensagem</a>
+            <a href="/mural.html">Mural de Avisos</a>
+            <a href="/login.html">Acesso Docente</a>
+        </div>
+    </nav>
+
+    <div style="flex: 1; display: flex; justify-content: center; align-items: center; padding: 2rem;">
+        <div class="card" style="width: 100%; max-width: 400px;">
+            <h2 class="text-center" style="margin-bottom: 2rem;">Acesso Docente</h2>
+
+        <div id="alertMessage" class="alert"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" class="form-control" required placeholder=" ">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" class="form-control" required placeholder=" ">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block mt-4">
+                Entrar
+            </button>
+        </form>
+
+        <div class="text-center mt-2">
+            <a href="/" style="font-size: 0.9rem; color: var(--text-muted);">Voltar para o Início</a>
+        </div>
+    </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/navbar.js"></script>
+</body>
+</html>

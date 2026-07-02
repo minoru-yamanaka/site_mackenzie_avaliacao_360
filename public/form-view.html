@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulário | Portal de Atividades</title>
+    <meta name="description" content="Responda o formulário">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 2rem 1rem; }
+        .form-wrapper { max-width: 720px; margin: 0 auto; }
+
+        /* Cabeçalho do formulário */
+        .form-header-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+            margin-bottom: 1.25rem;
+            border-top: 6px solid var(--primary);
+        }
+        .form-header-card h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+        .form-header-card p { color: var(--text-muted); white-space: pre-wrap; }
+        .form-header-meta { margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 1.5rem; flex-wrap: wrap; }
+
+        /* Cards de campo */
+        .field-card-view {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+        .field-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .field-required { color: var(--danger); }
+        .field-help { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+        /* Estrelas (1–4) */
+        .star-rating { display: flex; gap: 0.5rem; }
+        .star-btn {
+            font-size: 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: opacity 0.15s, transform 0.1s;
+            line-height: 1;
+        }
+        .star-btn.active, .star-btn:hover { opacity: 1; }
+        .star-btn:hover { transform: scale(1.2); }
+
+        /* Escala 0–10 */
+        .scale-container { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+        .scale-btn {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            font-family: inherit;
+        }
+        .scale-btn:hover { border-color: var(--primary); background: #eef2ff; color: var(--primary); }
+        .scale-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+        .scale-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; }
+
+        /* Sim/Não */
+        .yes-no-container { display: flex; gap: 1rem; margin-top: 0.5rem; }
+        .yes-no-btn {
+            flex: 1; padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            background: none;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .yes-no-btn:hover { border-color: var(--primary); background: #eef2ff; }
+        .yes-no-btn.active.yes { background: #d1fae5; border-color: var(--secondary); color: #065f46; }
+        .yes-no-btn.active.no { background: #fee2e2; border-color: var(--danger); color: #991b1b; }
+
+        /* CHA */
+        .cha-container { margin-top: 0.5rem; }
+        .cha-dimension { margin-bottom: 1.25rem; padding: 1rem; background: #f9fafb; border-radius: var(--radius); border-left: 3px solid var(--primary); }
+        .cha-dimension-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--primary); }
+        .cha-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .cha-option-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 999px;
+            background: white;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+        .cha-option-btn:hover { border-color: var(--primary); background: #eef2ff; color: var(--primary); }
+        .cha-option-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+        .cha-option-btn .cha-note-value { font-weight: 700; }
+        .cha-option-btn .cha-note-label { font-size: 0.75rem; display: block; opacity: 0.8; }
+
+        /* Botão de envio */
+        .submit-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.25rem;
+        }
+
+        /* Tela de sucesso */
+        #successScreen {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+        }
+        #successScreen .success-icon { font-size: 4rem; margin-bottom: 1rem; }
+
+        /* Tela de erro/indisponível */
+        #unavailableScreen {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Radio e checkbox customizados */
+        .radio-option, .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 0.4rem;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .radio-option:hover, .checkbox-option:hover { background: #f9fafb; border-color: var(--primary); }
+        .radio-option input, .checkbox-option input { accent-color: var(--primary); }
+
+        @media (max-width: 600px) {
+            .cha-options { flex-direction: column; }
+            .cha-option-btn { text-align: left; }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-wrapper">
+        <div id="alertMessage" class="alert" style="margin-bottom:1rem;"></div>
+
+        <!-- Tela: Formulário indisponível -->
+        <div id="unavailableScreen" class="hidden">
+            <div style="font-size:3rem; margin-bottom:1rem;">🔒</div>
+            <h2>Formulário Indisponível</h2>
+            <p id="unavailableMsg" style="color:var(--text-muted); margin-top:0.5rem;">Este formulário não está disponível no momento.</p>
+        </div>
+
+        <!-- Tela: Formulário -->
+        <div id="formScreen" class="hidden">
+            <!-- Cabeçalho do formulário -->
+            <div class="form-header-card">
+                <h1 id="formTitle">Carregando...</h1>
+                <p id="formDescription"></p>
+                <div class="form-header-meta" id="formMeta"></div>
+            </div>
+
+            <!-- Lista de campos renderizados dinamicamente -->
+            <div id="fieldsContainer"></div>
+
+            <!-- Rodapé com botão de envio -->
+            <div class="submit-card">
+                <button id="btnReset" class="btn" style="background:var(--bg-color); color:var(--text-main);">
+                    🔄 Limpar
+                </button>
+                <button id="btnSubmit" class="btn btn-primary" style="min-width:140px;">
+                    Enviar Resposta
+                </button>
+            </div>
+        </div>
+
+        <!-- Tela: Sucesso após envio -->
+        <div id="successScreen" class="hidden">
+            <div class="success-icon">✅</div>
+            <h2>Resposta enviada com sucesso!</h2>
+            <p style="color:var(--text-muted); margin: 1rem 0;">
+                Obrigado por responder. Sua resposta foi registrada.
+            </p>
+            <p style="font-size:0.85rem; color:var(--text-muted);" id="successDetail"></p>
+        </div>
+
+        <div style="text-align:center; margin-top:1.5rem; font-size:0.75rem; color:rgba(255,255,255,0.6);">
+            Plataforma de Formulários | Portal de Atividades
+        </div>
+    </div>
+
+    <script src="/js/form-view.js"></script>
+</body>
+</html>

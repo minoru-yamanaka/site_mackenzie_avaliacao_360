@@ -1,0 +1,82 @@
+-- database.sql
+-- Script para criar as tabelas no MySQL (Compatível com Hostinger/MySQL 8.0+)
+
+-- Opcional: Criar banco se não existir (se tiver permissão)
+-- CREATE DATABASE IF NOT EXISTS u952185621_academico_db;
+-- USE u952185621_academico_db;
+
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS subjects (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS professor_subjects (
+    professor_id BIGINT NOT NULL,
+    subject_id BIGINT NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (professor_id, subject_id),
+    FOREIGN KEY (professor_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS submissions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    student_name VARCHAR(255) NOT NULL,
+    student_drt VARCHAR(100) NOT NULL,
+    student_class VARCHAR(100) NOT NULL,
+    student_email VARCHAR(255) NOT NULL,
+    message TEXT,
+    file_path VARCHAR(500),
+    original_filename VARCHAR(255),
+    file_mimetype VARCHAR(100),
+    grade DECIMAL(5,2),
+    feedback TEXT,
+    status VARCHAR(50) DEFAULT 'Em Andamento',
+    subject_id BIGINT NOT NULL,
+    professor_id BIGINT NOT NULL,
+    resolver_id BIGINT,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE RESTRICT,
+    FOREIGN KEY (professor_id) REFERENCES users(id) ON DELETE RESTRICT,
+    FOREIGN KEY (resolver_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS notices (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    file_path VARCHAR(255),
+    original_filename VARCHAR(255),
+    author_id BIGINT,
+    subject_id BIGINT,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    sender_id BIGINT,
+    receiver_id BIGINT,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+);
